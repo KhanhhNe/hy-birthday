@@ -153,9 +153,10 @@ function VideoDisplay({
           <video
             src={videoLink}
             autoPlay={true}
+            playsInline={true}
+            loop={true}
             ref={videoElem}
             onPlaying={() => setPlaying(true)}
-            onEnded={() => videoElem.current?.play()}
             className="h-full w-full object-cover"
           />
         )}
