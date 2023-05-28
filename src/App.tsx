@@ -5,6 +5,7 @@ import {
   ArrowsPointingInIcon,
   PauseCircleIcon,
   PlayCircleIcon,
+  BackspaceIcon,
 } from "@heroicons/react/24/solid"
 import {
   ArrowRightIcon as OutlinedArrowRightIcon,
@@ -112,6 +113,14 @@ function VideoDisplay({
     videoElem.current?.addEventListener("loadedmetadata", () => {
       onVideoLoaded?.()
     })
+
+    videoElem.current?.addEventListener("play", () => {
+      setPlaying(true)
+    })
+
+    videoElem.current?.addEventListener("pause", () => {
+      setPlaying(false)
+    })
   }, [videoLink])
 
   return (
@@ -122,16 +131,15 @@ function VideoDisplay({
           <p>{body}</p>
         </div>
         <div className="flex h-[4rem] w-full justify-between">
-          {isPlaying === false && (
-            <PlayCircleIcon
-              className="h-full hover:cursor-pointer"
-              onClick={() => setPlaying(true)}
-            />
-          )}
-          {isPlaying === true && (
+          {isPlaying === true ? (
             <PauseCircleIcon
               className="h-full hover:cursor-pointer"
               onClick={() => setPlaying(false)}
+            />
+          ) : (
+            <PlayCircleIcon
+              className="h-full hover:cursor-pointer"
+              onClick={() => setPlaying(true)}
             />
           )}
           <ArrowRightCircleIcon
@@ -148,6 +156,7 @@ function VideoDisplay({
             ref={videoElem}
             onPlaying={() => setPlaying(true)}
             onEnded={() => videoElem.current?.play()}
+            className="h-full w-full object-cover"
           />
         )}
       </div>
@@ -165,10 +174,9 @@ function DaysQuiz({
   onGuessCorrect: (guess: VideoId) => void
 }) {
   const [errorMsg, setErrorMsg] = useState<string | undefined>()
-  const dayRef = useRef<HTMLInputElement>(null)
-  const monthRef = useRef<HTMLInputElement>(null)
   const [guess, setGuess] = useState<{ day?: number; month?: number }>({})
   const [guessCorrect, setGuessCorrect] = useState(false)
+  const [lastFocused, setLastFocused] = useState<"day" | "month">("day")
 
   const checkGuess = () => {
     if (!guess.day || !guess.month) {
@@ -185,11 +193,27 @@ function DaysQuiz({
     }
   }
 
+  const addNumber = (number: number) => {
+    if (lastFocused === "day") {
+      guess.day = (guess.day ?? 0) * 10 + number
+    } else {
+      guess.month = (guess.month ?? 0) * 10 + number
+    }
+    setGuess({ ...guess })
+  }
+
+  const removeNumber = () => {
+    if (lastFocused === "day") {
+      guess.day = Math.floor((guess.day ?? 0) / 10) || undefined
+    } else {
+      guess.month = Math.floor((guess.month ?? 0) / 10) || undefined
+    }
+    setGuess({ ...guess })
+  }
+
   useEffect(() => {
     if (videoReady) {
       setGuess({})
-      dayRef?.current?.value && (dayRef.current.value = "")
-      monthRef?.current?.value && (monthRef.current.value = "")
       setErrorMsg(undefined)
       setGuessCorrect(false)
     }
@@ -198,42 +222,46 @@ function DaysQuiz({
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-5">
       <h1 className="mb-5 text-center text-5xl font-bold">Days Quiz</h1>
-      <div className="grid w-[10rem] auto-rows-auto grid-cols-2 gap-x-3 text-center">
-        <input
-          className="inline-block aspect-square flex-grow rounded border bg-transparent text-center text-4xl"
-          type="number"
-          max={31}
-          min={1}
-          required
-          onChange={(e) =>
-            setGuess({ ...guess, day: parseInt(e.target.value, 10) })
-          }
-          ref={dayRef}
-        />
-        <input
-          className="inline-block aspect-square flex-grow rounded border bg-transparent text-center text-4xl"
-          type="number"
-          max={12}
-          min={1}
-          required
-          onChange={(e) =>
-            setGuess({ ...guess, month: parseInt(e.target.value, 10) })
-          }
-          ref={monthRef}
-        />
+      <div className="grid auto-rows-auto grid-cols-2 gap-x-3 text-center">
+        <div
+          className={`quiz-number ${
+            lastFocused === "day" ? "bg-white/50" : "bg-transparent"
+          }`}
+          onClick={() => setLastFocused("day")}
+        >
+          <span>{guess.day ?? ""}</span>
+        </div>
+        <div
+          className={`quiz-number ${
+            lastFocused === "month" ? "bg-white/50" : "bg-transparent"
+          }`}
+          onClick={() => setLastFocused("month")}
+        >
+          <span>{guess.month ?? ""}</span>
+        </div>
         <span className="text-lg">Ngày</span>
         <span className="text-lg">Tháng</span>
       </div>
-      <button
-        className="rounded-full border bg-white/10 p-2 hover:cursor-pointer"
-        onClick={checkGuess}
-      >
-        {guessCorrect && !videoReady ? (
-          <ArrowPathIcon className="w-6 animate-spin" />
-        ) : (
-          <OutlinedArrowRightIcon className="w-6" />
-        )}
-      </button>
+      <div className="grid grid-cols-3 grid-rows-4 gap-2">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <button className="numpad-number" onClick={() => addNumber(i + 1)}>
+            <span>{i + 1}</span>
+          </button>
+        ))}
+        <button className="numpad-number" onClick={removeNumber}>
+          <BackspaceIcon className="w-8" />
+        </button>
+        <button className="numpad-number" onClick={() => addNumber(0)}>
+          <span>0</span>
+        </button>
+        <button className="numpad-number" onClick={checkGuess}>
+          {guessCorrect && !videoReady ? (
+            <ArrowPathIcon className="w-8 animate-spin" />
+          ) : (
+            <OutlinedArrowRightIcon className="w-8" />
+          )}
+        </button>
+      </div>
       <span className="h-1 text-white/75">
         {errorMsg ?? "Nhập ngày nhập tháng bấm ➡️ nha."}
       </span>
@@ -245,8 +273,8 @@ function App() {
   const [currentVideoId, setCurrentVideoId] = useState<VideoId | undefined>()
   const [currentVideo, setCurrentVideo] = useState<Video | undefined>()
   const [videoReady, setVideoReady] = useState(false)
-  const handle = useFullScreenHandle()
   const [showVideo, setShowVideo] = useState(false)
+  const handle = useFullScreenHandle()
 
   useEffect(() => {
     if (currentVideoId) {

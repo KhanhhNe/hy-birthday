@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.quiz-number {
+    @apply inline-block h-20 w-20 flex-grow appearance-none rounded-lg border text-center text-4xl flex items-center justify-center
+}
+
+.numpad-number {
+    @apply aspect-square border rounded-full bg-white/10 p-3 h-14 w-14 text-3xl flex items-center justify-center
+}
